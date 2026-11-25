@@ -36,8 +36,6 @@ Bash, formatters, code generators, and scripts can overwrite concurrent edits wi
 
 Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names as the server argument: ["demo"].
 
-### On-demand tools from MCP server demo
+### Tools from MCP server demo
 
-These tools are not in your tool list. Before calling one, load it with mcp__demo__load_tools.
-
-- ping: Replies pong.
+Search with mcp__demo__search_tools to find and load tools before using them.

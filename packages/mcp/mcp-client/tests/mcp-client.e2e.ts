@@ -104,6 +104,7 @@ describe('fixture server — controlled scenarios', () => {
   let home: string
 
   const fixtureConfig: Config = Config({
+    toolLoading: 'eager',
     transport: 'stdio',
     serverName: 'fixture',
     command: process.execPath,
@@ -205,6 +206,7 @@ describe('fixture server — duplicate serverName', () => {
   it('rejects a second instance with the same serverName on one root', async () => {
     const ctx = await mountRegistry()
     const config: Config = Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'dup',
       command: process.execPath,
@@ -228,6 +230,7 @@ describe('fixture server — disposal', () => {
   it('disposes cleanly without error', async () => {
     const ctx = await mountRegistry()
     await apply(ctx, Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'fixture',
       command: process.execPath,
@@ -252,6 +255,7 @@ describe('fixture server — disposal', () => {
 describe('fixture server — crash recovery', () => {
   function crashConfig(serverName: string, reconnect: NonNullable<Config['reconnect']>): Config {
     return Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName,
       command: process.execPath,
@@ -337,6 +341,7 @@ describe('server-everything — official test server', () => {
   let ctx: Context
 
   const config: Config = Config({
+    toolLoading: 'eager',
     transport: 'stdio',
     serverName: 'everything',
     command: join(localBin, 'mcp-server-everything'),
@@ -407,6 +412,7 @@ describe('server-filesystem — real filesystem operations', () => {
 
     ctx = await mountRegistry()
     const config: Config = Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'filesystem',
       command: join(localBin, 'mcp-server-filesystem'),
@@ -520,6 +526,7 @@ describe('streamable-http — in-process MCP server', () => {
 
     ctx = await mountRegistry()
     const config: Config = Config({
+      toolLoading: 'eager',
       transport: 'streamable-http',
       serverName: 'web',
       url: baseUrl,
@@ -575,6 +582,7 @@ describe('fixture server — probe', () => {
     const ctx = await mountRegistry()
     try {
       const result = await probeServer(ctx, Config({
+        toolLoading: 'eager',
         transport: 'stdio',
         serverName: 'probe',
         command: process.execPath,
@@ -595,6 +603,7 @@ describe('fixture server — probe', () => {
       expect(ctx.tools.get('mcp__probe__add')).toBeUndefined()
 
       const dead = await probeServer(ctx, Config({
+        toolLoading: 'eager',
         transport: 'stdio',
         serverName: 'probe',
         command: process.execPath,

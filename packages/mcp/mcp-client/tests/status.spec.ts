@@ -93,6 +93,7 @@ const containing = (text: string): string => expect.stringContaining(text) as st
 
 function stdioConfig(overrides?: Partial<Extract<Config, { transport: 'stdio' }>>): Config {
   return ConfigSchema({
+    toolLoading: 'eager',
     transport: 'stdio',
     serverName: 'srv',
     command: 'echo',
@@ -269,7 +270,7 @@ describe('connection status surface', () => {
   })
 
   it('keeps the final status readable when the plugin instance is disposed', async () => {
-    const fiber = ctx.plugin(McpClient, { transport: 'stdio', serverName: 'scoped', command: 'echo' })
+    const fiber = ctx.plugin(McpClient, { toolLoading: 'eager', transport: 'stdio', serverName: 'scoped', command: 'echo' })
     const actualFiber = await fiber
     const handle = connectionStatusOf(fiber)!
     expect(connectionStatusOf(actualFiber)).toBe(handle)

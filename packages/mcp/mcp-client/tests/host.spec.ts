@@ -24,10 +24,10 @@ async function hosted() {
 
 it('resolves server defaults and names every refused field after the server path', async () => {
   const { host } = await hosted()
-  expect(host.validate({ transport: 'stdio', serverName: 'local', command: 'echo' }, ['servers', 'local'])).toMatchObject({
+  expect(host.validate({ toolLoading: 'eager', transport: 'stdio', serverName: 'local', command: 'echo' }, ['servers', 'local'])).toMatchObject({
     transport: 'stdio', args: [], env: {}, cwd: '', toolCallTimeoutMs: 60_000, closeTimeoutMs: 5_000, expandTemplates: false,
   })
-  const http = { transport: 'streamable-http', serverName: 'remote', url: 'https://example.invalid/mcp' } as const
+  const http = { toolLoading: 'eager', transport: 'streamable-http', serverName: 'remote', url: 'https://example.invalid/mcp' } as const
   expect(() => host.validate({ ...http, serverName: 'bad name' }, ['servers', 'bad name']))
     .toThrow('servers.bad name: server name must match')
   expect(() => host.validate({ ...http, closeTimeoutMs: 0 }, ['servers', 'remote']))
@@ -40,17 +40,18 @@ it('resolves server defaults and names every refused field after the server path
 
 it('checks template tokens by field only when expansion is enabled', async () => {
   const { host } = await hosted()
-  const stdio: ConfigInput = { transport: 'stdio', serverName: 'local', command: 'echo', args: ['${credential:A}', '${env:B}'] }
+  const stdio: ConfigInput = { toolLoading: 'eager', transport: 'stdio', serverName: 'local', command: 'echo', args: ['${credential:A}', '${env:B}'] }
   expect(() => host.validate({ ...stdio, expandTemplates: true }, ['servers', 'local'])).toThrow('servers.local.args[1]')
   expect(host.validate(stdio, ['servers', 'local'])).toMatchObject({ args: ['${credential:A}', '${env:B}'] })
   expect(() => host.validate({
+    toolLoading: 'eager',
     transport: 'streamable-http', serverName: 'remote', url: 'https://example.invalid/mcp', headers: { 'x-token': '${vault:C}' }, expandTemplates: true,
   }, ['servers', 'remote'])).toThrow('servers.remote.headers.x-token')
 })
 
 it('mounts an instance below the host, reports its status, and returns its cleanup result on disposal', async () => {
   const { ctx, host, url } = await hosted()
-  const instance = host.mount(host.validate({ transport: 'streamable-http', serverName: 'fixture', url }, ['fixture']))
+  const instance = host.mount(host.validate({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'fixture', url }, ['fixture']))
   const status = await instance.ready
   expect(status.current()).toMatchObject({ state: 'connected', toolCount: 1 })
   expect(ctx.tools.get('mcp__fixture__ping')).toBeDefined()
@@ -60,7 +61,7 @@ it('mounts an instance below the host, reports its status, and returns its clean
 
 it('rejects activation that fails before the instance registers status, and disposes it without a cleanup result', async () => {
   const { host, url } = await hosted()
-  const config = host.validate({ transport: 'streamable-http', serverName: 'fixture', url, oauth: { credentialKey: 'mcp-client/fixture' } }, ['fixture'])
+  const config = host.validate({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'fixture', url, oauth: { credentialKey: 'mcp-client/fixture' } }, ['fixture'])
   if (config.transport !== 'streamable-http') throw new Error('expected a Streamable HTTP configuration')
   const instance = host.mount({ ...config, headers: { Authorization: 'x' } })
   await expect(instance.ready).rejects.toThrow('MCP OAuth and an Authorization header cannot be configured together')
@@ -69,7 +70,7 @@ it('rejects activation that fails before the instance registers status, and disp
 
 it('probes without registering tools', async () => {
   const { ctx, host, url } = await hosted()
-  expect(await host.probe(host.validate({ transport: 'streamable-http', serverName: 'fixture', url }, ['fixture']))).toMatchObject({
+  expect(await host.probe(host.validate({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'fixture', url }, ['fixture']))).toMatchObject({
     ok: true, toolNames: ['ping'], closeConfirmed: true,
   })
   expect(ctx.tools.get('mcp__fixture__ping')).toBeUndefined()
@@ -87,7 +88,7 @@ it('creates authorization owners that commit a grant through the host context', 
 
 it('withdraws the host and every instance it mounted when its owner is disposed', async () => {
   const { ctx, entry, host, url } = await hosted()
-  await host.mount(host.validate({ transport: 'streamable-http', serverName: 'fixture', url }, ['fixture'])).ready
+  await host.mount(host.validate({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'fixture', url }, ['fixture'])).ready
   expect(ctx.tools.get('mcp__fixture__ping')).toBeDefined()
   await entry.dispose()
   expect(ctx.get('mcpClientHost')).toBeUndefined()

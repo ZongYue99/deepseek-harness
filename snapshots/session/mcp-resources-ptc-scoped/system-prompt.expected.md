@@ -165,6 +165,13 @@ interface ToolArgsMap {
     /** Continuation cursor returned by this server. */
     cursor?: string;
   } & Record<string, JsonValue>;
+  /** Search for tools from MCP server catalog and make matching tools available for your next call. Returns their callable names and summaries. */
+  mcp__catalog__search_tools: {
+    /** Task keywords or an exact tool name. */
+    query: string;
+    /** Maximum tools to load, from 1 to 8; defaults to 8. */
+    limit?: number;
+  } & Record<string, JsonValue>;
   /** Read a UTF-8 text file and return line-numbered content. */
   read: {
     /** Path to read, resolved by the filesystem backend. */
@@ -451,6 +458,7 @@ interface ToolOutputMap {
   };
   list_mcp_resource_templates: JsonValue;
   list_mcp_resources: JsonValue;
+  mcp__catalog__search_tools: string;
   read: {
     /** Canonical absolute path in the filesystem execution world. */
     path: string;

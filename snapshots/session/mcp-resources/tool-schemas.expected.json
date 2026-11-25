@@ -288,6 +288,26 @@
       }
     },
     {
+      "name": "mcp__catalog__search_tools",
+      "description": "Search for tools from MCP server catalog and make matching tools available for your next call. Returns their callable names and summaries.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Task keywords or an exact tool name."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum tools to load, from 1 to 8; defaults to 8."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    },
+    {
       "name": "read",
       "description": "Read a UTF-8 text file and return line-numbered content.",
       "parameters": {

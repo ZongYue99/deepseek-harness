@@ -37,7 +37,7 @@ bundle patch 在 profile 其他层之后插入 `tencent-docs` 行。插件需要
 
 ### 授权与退出登录
 
-插件以固定的 OAuth 凭据 key `mcp-client/tencent-docs` 注册服务器 `tencent-docs`。没有已保存的 grant 时，服务器等待授权，不提供腾讯文档工具。有已保存的 grant 时，管理器在启动时连接，并按需刷新 token。腾讯文档的工具默认[按需加载](../../mcp/mcp-client/README.zh.md#on-demand-tool-loading)：系统提示词列出这些工具，每个 agent 用 `mcp__tencent-docs__load_tools` 加载需要的工具。
+插件以固定的 OAuth 凭据 key `mcp-client/tencent-docs` 注册服务器 `tencent-docs`。没有已保存的 grant 时，服务器等待授权，不提供腾讯文档工具。有已保存的 grant 时，管理器在启动时连接，并按需刷新 token。腾讯文档的工具默认[按需加载](../../mcp/mcp-client/README.zh.md#on-demand-tool-loading)：每个 agent 用 `mcp__tencent-docs__search_tools` 搜索并加载匹配工具。
 
 插件开启期间，它在**插件**页面的详情页显示 **腾讯文档账号**区块，标题旁的标签显示未连接、连接中、已连接、需要重新连接或暂时无法连接。在列表中开启插件而尚未连接账号时，页面提示**连接腾讯文档**，点击后打开插件详情页并发起授权。
 
@@ -122,7 +122,7 @@ Tools named `mcp__tencent-docs__*` come from the Tencent Docs plugin. In user-fa
 
 #### 模型看到什么
 
-授权之后，模型会在 `### MCP server: tencent-docs` 之下看到腾讯文档的服务器说明；在默认的 `toolLoading: on-demand` 下，还会看到加载器 `mcp__tencent-docs__load_tools`，以及系统提示词中的[腾讯文档工具目录](../../mcp/mcp-client/README.zh.md#model-experience)，加载的每个工具随后以 `mcp__tencent-docs__<tool>` 命名，带有腾讯文档提供的描述和输入 schema。腾讯文档的许多工具名包含点号，例如 `doc.create_with_markdown`；目录按原样列出这些名称，加载后的名称把点号替换掉并加上哈希后缀，例如 `mcp__tencent-docs__doc_create_with_markdown_ff0986999909`，详见 [MCP 客户端](../../mcp/mcp-client/README.zh.md#model-experience)。设为 `eager` 时，所有工具从一开始就出现，详见 [MCP 客户端](../../mcp/mcp-client/README.zh.md#model-experience)。设为 `on-demand` 时，加载器和目录只在腾讯文档连接后出现。插件加载期间（包括授权之前），[共用的资源工具](../../mcp/mcp-resources/README.zh.md#model-experience)及其服务器名提示词都会列出 `tencent-docs`。
+授权之后，模型看到腾讯文档的服务器说明和 `mcp__tencent-docs__search_tools`。搜索返回可调用名称与摘要，然后仅向当前 agent 添加匹配工具定义；`eager` 立即提供全部定义。[MCP 客户端](../../mcp/mcp-client/README.zh.md#model-experience)负责搜索、名称规范化及 token 和缓存行为。插件加载期间（包括授权之前），[共用资源工具](../../mcp/mcp-resources/README.zh.md#model-experience)列出 `tencent-docs`。
 
 #### Token 影响
 

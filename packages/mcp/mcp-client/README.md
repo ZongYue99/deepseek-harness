@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-mcp-client` lets the model use tools and resources from external Model Context Protocol (MCP) servers. Configure one server per entry; its tools use names such as `mcp__github__create_issue`. No server is enabled by default. Shipped profiles already provide [shared resource discovery and reading](../mcp-resources/README.md). An empty caller scope adds no MCP tools or prompt text. Server instructions join the logged system prompt as literal text; MCP prompt templates are unsupported. With `toolLoading: on-demand`, the system prompt lists the tools and each agent loads the ones it needs. Slow or crashed servers can delay startup or fail calls until recovery.
+`dsh-mcp-client` lets the model use tools and resources from external Model Context Protocol (MCP) servers. Configure one server per entry; its tools use names such as `mcp__github__create_issue`. No server is enabled by default. Shipped profiles already provide [shared resource discovery and reading](../mcp-resources/README.md). An empty caller scope adds no MCP tools or prompt text. Server instructions join the logged system prompt as literal text; MCP prompt templates are unsupported. By default, each agent searches for tools and loads only the matches; `toolLoading: eager` exposes every tool immediately. Slow or crashed servers can delay startup or fail calls until recovery.
 
 ## Table of Contents
 
@@ -68,8 +68,9 @@ Add one entry per server; nothing else is required. After the harness starts, th
 | `reconnect.initialDelayMs` | `500` | First reconnect delay; doubles per consecutive failed attempt |
 | `reconnect.maxDelayMs` | `30,000` | Backoff ceiling; also the uptime after which the attempt budget resets |
 | `reconnect.maxAttempts` | `10` | Consecutive failed attempts per outage before giving up |
-| `toolLoading` | `eager` | `on-demand` keeps the server's tools out of every tool list until an agent loads them with `mcp__<serverName>__load_tools` |
-| `catalogDescriptionMaxLength` | `160` | Maximum characters of each tool summary in an on-demand server's prompt catalog |
+| `toolLoading` | `on-demand` | Search and load matching tools with `mcp__<serverName>__search_tools`; `eager` exposes every tool immediately |
+| `catalogDescriptionMaxLength` | `160` | Maximum characters of each tool summary returned by search |
+| `searchResultLimit` | `8` | Maximum tools loaded per search; the model may request a smaller `limit` |
 
 The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-mcp-client) is the exhaustive source for every accepted field.
 
@@ -106,7 +107,7 @@ When a server connection drops — for example a local server process crashes �
 <a id="on-demand-tool-loading"></a>
 ### On-demand tool loading
 
-Set `toolLoading: on-demand` for a server whose tool definitions are too large to send with every request. Its tools then stay out of the tool list: the system prompt lists each tool's raw name with the first line of its description, and the model loads the tools it needs with `mcp__<serverName>__load_tools`. A loaded tool joins only the calling agent's tool list; subagents, forks, and resumed sessions start without loaded tools. Each later sync, including one after a reconnect, re-registers the loaded tools the server still offers and removes the rest. A server tool named `load_tools` is left out of the catalog with a logged warning. Any agent that sees the loader can load every listed tool; see [Known Limitations](#known-limitations-and-deferred-work) for tool restrictions.
+The default `toolLoading: on-demand` keeps full tool definitions out of the model's initial context. The model calls `mcp__<serverName>__search_tools` with task keywords or an exact raw or callable tool name; the search loads matching tools into only the calling agent's tool list. Search uses MiniSearch over names and full descriptions, with Unicode word segmentation and exact-name precedence. Subagents, forks, and resumed sessions start without loaded tools. Each later sync, including a reconnect, re-registers loaded tools still offered and removes the rest. A server tool named `search_tools` is omitted with a warning. Use `toolLoading: eager` for integrations that require immediate access. See [Known Limitations](#known-limitations-and-deferred-work) for restrictions.
 
 <a id="runtime-templates-and-credentials"></a>
 ### Runtime templates and credentials
@@ -238,15 +239,15 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 #### What the model sees
 
-An on-demand server contributes one tool, `mcp__<serverName>__load_tools`, and a system prompt section titled `On-demand tools from MCP server <serverName>` that lists each tool's raw name and summary. The section appears only for an agent that sees the loader. A load returns the public names it added or found already loaded; the next request carries their definitions, and the session log records the tool addition.
+An on-demand server contributes `mcp__<serverName>__search_tools` and a short service-level discovery prompt, without enumerating tool names or schemas. Search returns bounded callable names and summaries; the next request carries the matching definitions, and the session log records their addition. No matches is a successful empty search. Invalid queries or limits fail without loading tools.
 
 #### Token effect
 
-Until an agent loads a tool, the server costs the loader definition and one catalog line per tool, each summary capped by `catalogDescriptionMaxLength`, instead of every tool definition. Each loaded tool adds its full definition to that agent's requests.
+Before discovery, context contains only the search definition and service-level prompt, regardless of tool count. Each search loads at most `searchResultLimit` tools and caps each result summary by `catalogDescriptionMaxLength`. Loaded definitions remain available to that agent; repeated searches can accumulate definitions and are not a total context budget.
 
 #### KV Cache effect
 
-A load changes the agent's tool list. Routes that declare tool updates append the addition and keep the prefix; other routes start a new request series. A changed server tool list appends the updated catalog section, as changed server instructions do.
+A search that loads tools changes the agent's tool list. Routes that declare tool updates append the addition and keep the prefix; other routes start a new request series. Changing the searchable inventory alone does not expand the discovery prompt.
 
 ### Server instructions
 

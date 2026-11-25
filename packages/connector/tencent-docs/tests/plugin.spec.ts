@@ -90,11 +90,11 @@ it('keeps Tencent Docs tools hidden from an agent until it loads them, unless lo
   await onDemand.await()
   await b.authorize()
   expect(b.ctx.tools.get('mcp__tencent-docs__ping', agent)).toBeUndefined()
-  expect(b.ctx.tools.get('mcp__tencent-docs__load_tools', agent)).toBeDefined()
+  expect(b.ctx.tools.get('mcp__tencent-docs__search_tools', agent)).toBeDefined()
   expect(await executeToolFixture(b.ctx, {
-    callId: ToolCallId('tencent-docs-load'), name: 'mcp__tencent-docs__load_tools', arguments: { tools: ['ping'] },
+    callId: ToolCallId('tencent-docs-load'), name: 'mcp__tencent-docs__search_tools', arguments: { query: 'ping' },
     signal: new AbortController().signal, agent,
-  })).toMatchObject({ isError: false, value: 'Loaded: mcp__tencent-docs__ping.' })
+  })).toMatchObject({ isError: false, value: 'Available for your next call:\n- mcp__tencent-docs__ping: Replies pong.' })
   expect(b.ctx.tools.get('mcp__tencent-docs__ping', agent)).toBeDefined()
 
   await onDemand.dispose()

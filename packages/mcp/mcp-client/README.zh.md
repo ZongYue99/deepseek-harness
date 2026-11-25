@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-mcp-client` 让模型使用外部 MCP（Model Context Protocol）服务器的工具与资源。每台服务器配置一条记录；其工具使用 `mcp__github__create_issue` 这样的名称。默认不启用任何服务器。随附 profile 已提供[共享资源发现与读取](../mcp-resources/README.zh.md)。调用方作用域为空时，不添加 MCP 工具或提示词文本。服务器指令作为字面文本加入已记录的系统提示词；MCP 提示词模板不受支持。配置 `toolLoading: on-demand` 时，系统提示词列出这些工具，由各 agent 加载所需的工具。缓慢或崩溃的服务器可能延迟启动，或让调用失败直至恢复。
+`dsh-mcp-client` 让模型使用外部 MCP（Model Context Protocol）服务器的工具与资源。每台服务器配置一条记录；其工具使用 `mcp__github__create_issue` 这样的名称。默认不启用任何服务器。随附 profile 已提供[共享资源发现与读取](../mcp-resources/README.zh.md)。调用方作用域为空时，不添加 MCP 工具或提示词文本。服务器指令作为字面文本加入已记录的系统提示词；MCP 提示词模板不受支持。默认由各 agent 搜索工具并仅加载匹配项；`toolLoading: eager` 立即提供所有工具。缓慢或崩溃的服务器可能延迟启动，或让调用失败直至恢复。
 
 ## 目录
 
@@ -68,8 +68,9 @@ kind: "package-reference"
 | `reconnect.initialDelayMs` | `500` | 首次重连延迟；每次连续失败尝试翻倍 |
 | `reconnect.maxDelayMs` | `30,000` | 退避上限；同时是重置尝试预算所需的正常运行时长 |
 | `reconnect.maxAttempts` | `10` | 每次中断内连续失败尝试次数上限，超出后放弃 |
-| `toolLoading` | `eager` | `on-demand` 让服务器的工具不进入任何工具列表，直到 agent 用 `mcp__<serverName>__load_tools` 加载 |
-| `catalogDescriptionMaxLength` | `160` | 按需服务器提示词目录中每个工具摘要的最大字符数 |
+| `toolLoading` | `on-demand` | 用 `mcp__<serverName>__search_tools` 搜索并加载匹配工具；`eager` 立即提供所有工具 |
+| `catalogDescriptionMaxLength` | `160` | 搜索结果中每个工具摘要的最大字符数 |
+| `searchResultLimit` | `8` | 每次搜索加载工具数量的上限；模型可以通过 `limit` 请求更少结果 |
 
 生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-mcp-client)是每个受支持字段的穷尽式真源。
 
@@ -106,7 +107,7 @@ kind: "package-reference"
 <a id="on-demand-tool-loading"></a>
 ### 按需加载工具
 
-工具定义太大、不适合随每次请求发送的服务器，可以设置 `toolLoading: on-demand`。这样它的工具不进入工具列表：系统提示词列出每个工具的原始名称及其描述的第一行，模型用 `mcp__<serverName>__load_tools` 加载需要的工具。加载的工具只加入调用方 agent 的工具列表；子 agent、fork 和恢复的会话开始时都没有已加载的工具。之后的每次同步（包括重连后的同步）会重新注册服务器仍提供的已加载工具，并移除其余工具。服务器自己名为 `load_tools` 的工具不列入目录，并记录一条警告。能看到加载器的 agent 都能加载目录中的任何工具；工具限制见[已知限制](#known-limitations-and-deferred-work)。
+默认的 `toolLoading: on-demand` 将完整工具定义留在模型初始上下文之外。模型用任务关键词或精确的原始名称、可调用名称调用 `mcp__<serverName>__search_tools`；搜索只将匹配工具加载到调用方 agent 的工具列表。搜索用 MiniSearch 检索名称与完整描述，使用 Unicode 分词并优先匹配精确名称。子 agent、fork 和恢复的会话开始时均没有已加载的工具。之后每次同步（包括重连）会重新注册仍然存在的已加载工具，并移除其余工具。服务器名为 `search_tools` 的工具会被排除并记录警告。需要立即访问工具的集成可以设置 `toolLoading: eager`。工具限制见[已知限制](#known-limitations-and-deferred-work)。
 
 <a id="runtime-templates-and-credentials"></a>
 ### 运行时模板与凭据
@@ -238,15 +239,15 @@ SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器�
 
 #### 模型看到什么
 
-按需服务器提供一个工具 `mcp__<serverName>__load_tools`，以及一个标题为 `On-demand tools from MCP server <serverName>` 的系统提示词段落，列出每个工具的原始名称和摘要。只有能看到加载器的 agent 才会看到该段落。一次加载返回它新增或已经加载的公开名称；下一次请求带上这些工具的定义，会话日志记录这次工具添加。
+按需服务器提供 `mcp__<serverName>__search_tools` 和简短的服务发现提示词，不枚举工具名称或 schema。搜索返回有数量上限的可调用名称与摘要；下一次请求带上匹配工具的定义，会话日志记录工具添加。无匹配是成功的空搜索；无效查询或数量限制会报错且不加载工具。
 
 #### Token 影响
 
-在 agent 加载工具之前，服务器的开销是加载器定义加每个工具一行目录，每条摘要以 `catalogDescriptionMaxLength` 为上限，而不是全部工具定义。每个已加载的工具会把完整定义加入该 agent 的请求。
+发现之前，上下文只包含搜索定义与服务级提示词，不随工具数量增长。每次搜索最多加载 `searchResultLimit` 个工具，每条结果摘要受 `catalogDescriptionMaxLength` 限制。已加载定义持续对该 agent 可用；重复搜索可能累积定义，这不是总上下文预算。
 
 #### KV Cache 影响
 
-一次加载会改变该 agent 的工具列表。声明了工具更新的路由会追加这次添加并保留前缀；其他路由开始新的请求序列。服务器工具列表变化时追加更新后的目录段落，与服务器指令变化的情况相同。
+加载工具的搜索会改变 agent 的工具列表。声明了工具更新的路由追加添加项并保留前缀；其他路由开始新的请求序列。仅改变可搜索工具集合不会扩大服务发现提示词。
 
 ### 服务器指令
 

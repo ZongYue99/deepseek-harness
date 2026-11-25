@@ -90,10 +90,12 @@ export interface StdioConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` lists the server's tools for agents to load instead of registering them (default `eager`). */
+  /** `on-demand` exposes tools through search; `eager` registers every tool immediately (default `on-demand`). */
   toolLoading: 'eager' | 'on-demand'
-  /** Maximum characters of each tool's summary in an on-demand server's prompt catalog (default 160). */
+  /** Maximum characters of each tool's summary in on-demand search results (default 160). */
   catalogDescriptionMaxLength: number
+  /** Maximum tools loaded by one search (default 8). */
+  searchResultLimit: number
 }
 
 /** Config for connecting to an MCP server over Streamable HTTP (SSE). */
@@ -126,10 +128,12 @@ export interface StreamableHttpConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` lists the server's tools for agents to load instead of registering them (default `eager`). */
+  /** `on-demand` exposes tools through search; `eager` registers every tool immediately (default `on-demand`). */
   toolLoading: 'eager' | 'on-demand'
-  /** Maximum characters of each tool's summary in an on-demand server's prompt catalog (default 160). */
+  /** Maximum characters of each tool's summary in on-demand search results (default 160). */
   catalogDescriptionMaxLength: number
+  /** Maximum tools loaded by one search (default 8). */
+  searchResultLimit: number
 }
 
 /** Configuration for one stdio or Streamable HTTP MCP server. */

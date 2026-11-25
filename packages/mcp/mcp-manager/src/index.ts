@@ -69,7 +69,7 @@ export interface McpManagedServerEntry {
   closeTimeoutMs?: number
   /** Reconnect policy; the MCP client host validates it, and omission uses the mcp-client defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` keeps the server's tools out of every tool list until an agent loads them; default `eager`. */
+  /** `on-demand` keeps the server's tools out of every tool list until an agent loads them; default `on-demand`. */
   toolLoading: 'eager' | 'on-demand'
 }
 
@@ -106,7 +106,7 @@ const ServerEntrySchema = z.object({
   startupTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS).default(30_000),
   closeTimeoutMs: z.number().min(1).max(MAX_TIMER_DELAY_MS),
   reconnect: z.any(),
-  toolLoading: z.union(['eager', 'on-demand']).default('eager'),
+  toolLoading: z.union(['eager', 'on-demand']).default('on-demand'),
 }) as z<EntryInput, McpManagedServerEntry>
 
 /** One server's child instance, probes, and any cleanup failure retained by the manager. */

@@ -15609,6 +15609,9 @@ importers:
       '@modelcontextprotocol/core':
         specifier: 2.2.0
         version: 2.2.0
+      minisearch:
+        specifier: ^7.2.0
+        version: 7.2.0
       zod:
         specifier: 4.6.6
         version: 4.6.6

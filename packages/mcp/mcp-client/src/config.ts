@@ -19,19 +19,19 @@ const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
 /** Default budget for transport closure and local cleanup (ms). */
 const DEFAULT_CLOSE_TIMEOUT_MS = 5_000
 
-/** Default cap on each tool summary in an on-demand server's prompt catalog. */
+/** Default cap on each tool summary in an on-demand server's search results. */
 const DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH = 160
 
 /** Valid `serverName`, kept below the public tool-name budget. */
 export const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 
 /** {@link StdioConfig} before defaults. */
-type StdioConfigInput = Omit<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength'>
-  & Partial<Pick<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength'>>
+type StdioConfigInput = Omit<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength' | 'searchResultLimit'>
+  & Partial<Pick<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength' | 'searchResultLimit'>>
 
 /** {@link StreamableHttpConfig} before defaults. */
-type StreamableHttpConfigInput = Omit<StreamableHttpConfig, 'oauth' | 'headers' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength'>
-  & Partial<Pick<StreamableHttpConfig, 'headers' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength'>>
+type StreamableHttpConfigInput = Omit<StreamableHttpConfig, 'oauth' | 'headers' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength' | 'searchResultLimit'>
+  & Partial<Pick<StreamableHttpConfig, 'headers' | 'toolCallTimeoutMs' | 'startupTimeoutMs' | 'failOnStartupError' | 'closeTimeoutMs' | 'expandTemplates' | 'toolLoading' | 'catalogDescriptionMaxLength' | 'searchResultLimit'>>
   & { oauth?: McpOAuthConfigInput }
 
 /** One server's configuration before defaults. */
@@ -64,7 +64,8 @@ export const StdioSchema = z.object({
   failOnStartupError: z.boolean().default(false),
   maxInstructionBytes: z.number().step(1).min(1).default(DEFAULT_MAX_INSTRUCTION_BYTES),
   reconnect: ReconnectSchema,
-  toolLoading: z.union(['eager', 'on-demand']).default('eager'),
+  toolLoading: z.union(['eager', 'on-demand']).default('on-demand'),
+  searchResultLimit: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(8),
   catalogDescriptionMaxLength: z.natural().min(4).default(DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH),
 }) as z<StdioConfigInput, StdioConfig>
 
@@ -82,7 +83,8 @@ export const StreamableHttpSchema = z.object({
   failOnStartupError: z.boolean().default(false),
   maxInstructionBytes: z.number().step(1).min(1).default(DEFAULT_MAX_INSTRUCTION_BYTES),
   reconnect: ReconnectSchema,
-  toolLoading: z.union(['eager', 'on-demand']).default('eager'),
+  toolLoading: z.union(['eager', 'on-demand']).default('on-demand'),
+  searchResultLimit: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(8),
   catalogDescriptionMaxLength: z.natural().min(4).default(DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH),
 }) as z<StreamableHttpConfigInput, StreamableHttpConfig>
 /* jscpd:ignore-end */

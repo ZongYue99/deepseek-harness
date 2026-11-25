@@ -9,8 +9,8 @@
   en: c3e635d210dd707e
   zh: bd749579307d6a2d
 /deepseek-ai-dsh-mcp-client/summary:
-  en: 1a43f0ac78b959e0
-  zh: ec9ebc4ddb6e7fe1
+  en: ea7a56624dc4fab0
+  zh: a0afc6fe63468b08
 /deepseek-ai-dsh-mcp-client/table-of-contents:
   en: d152484eb41ac6b4
   zh: 09388d293f9be9cb
@@ -18,8 +18,8 @@
   en: e77871d58566601a
   zh: c5ef229d22eb3ebf
 /deepseek-ai-dsh-mcp-client/use-this-package/minimal-configuration:
-  en: 5d3e094e8fd68c11
-  zh: 7149cb73362d5063
+  en: c10f5610e3a1668e
+  zh: 0e3b1410bd140a3a
 /deepseek-ai-dsh-mcp-client/use-this-package/host-for-a-server-manager:
   en: 3a2f56982dae025b
   zh: af9be5c291759dcd
@@ -33,8 +33,8 @@
   en: ac84e00aec7c562e
   zh: f747ecbdb046e94e
 /deepseek-ai-dsh-mcp-client/use-this-package/on-demand-tool-loading:
-  en: a3db5f110c502742
-  zh: 431dafe2420cfb90
+  en: 0ace6f98b542caf2
+  zh: e1564f2a1313194f
 /deepseek-ai-dsh-mcp-client/use-this-package/runtime-templates-and-credentials:
   en: d21fc37c7a7f5bb9
   zh: 14fbc6ab5bf08ff2
@@ -93,14 +93,14 @@
   en: a6c14c7b2d7d39f4
   zh: 7b555e8cb3f47d4b
 /deepseek-ai-dsh-mcp-client/model-experience/on-demand-tools/what-the-model-sees:
-  en: 8efbf711918c1128
-  zh: 90e277ce7b5c0fd8
+  en: 254775f470ed6b7a
+  zh: f904f0572bf71ae3
 /deepseek-ai-dsh-mcp-client/model-experience/on-demand-tools/token-effect:
-  en: 9a662db85a7da1b8
-  zh: 5272801e35cff20a
+  en: fb13eae3df4b6020
+  zh: ce83ddae9c75dc0d
 /deepseek-ai-dsh-mcp-client/model-experience/on-demand-tools/kv-cache-effect:
-  en: 2d63ef736644d73b
-  zh: f7fffb95cca62ffa
+  en: 6340da1537d6b720
+  zh: 0fb738f691be0f15
 /deepseek-ai-dsh-mcp-client/model-experience/server-instructions:
   en: a3cb7c5760a8c141
   zh: ec9fc8d4f00a5eb6

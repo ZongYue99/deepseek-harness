@@ -58,6 +58,7 @@ const containing = (text: string): string => expect.stringContaining(text) as st
 
 function httpConfig(): Config {
   return Config({
+    toolLoading: 'eager',
     transport: 'streamable-http',
     serverName: 'probe',
     url: 'http://localhost:9',

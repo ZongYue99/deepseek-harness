@@ -45,8 +45,8 @@ export interface ToolBridgeOptions {
 }
 
 /**
- * Registration failed after the prior generation was removed and partial
- * registrations were rolled back (`MCP_TOOL_REGISTRATION_FAILED`).
+ * Generation or search registration failed and partial new registrations
+ * were rolled back (`MCP_TOOL_REGISTRATION_FAILED`).
  */
 export class McpToolRegistrationError extends McpLocalError {
   constructor(message: string, options?: ErrorOptions) {

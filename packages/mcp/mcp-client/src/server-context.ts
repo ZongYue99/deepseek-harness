@@ -1,6 +1,6 @@
 /**
  * Publish connection-owned MCP resources, literal server instructions, and an
- * on-demand server's tool catalog.
+ * on-demand server's discovery instructions.
  *
  * @module @deepseek-ai/dsh-mcp-client
  */
@@ -20,7 +20,7 @@ export interface ServerContext {
    */
   instructions(): string
   /**
-   * Render an on-demand server's tool catalog for one prompt assembly.
+   * Render an on-demand server's discovery instructions for one prompt assembly.
    * @param scope - the assembling agent, or undefined for the global view.
    * @returns literal prompt text, or an empty string when the scope has nothing to load.
    */
@@ -31,7 +31,7 @@ export interface ServerContext {
  * Contribute server context to the services enabled by this composition.
  * @param ctx - server plugin's registration scope and effect owner.
  * @param server - configured server identity.
- * @param connection - live resource operations, successful instruction snapshot, and an on-demand server's tool catalog.
+ * @param connection - live resource operations, successful instruction snapshot, and an on-demand server's discovery instructions.
  */
 export function registerServerContext(ctx: Context, server: string, connection: ServerContext): void {
   ctx.inject(['mcpResources'], (inner) => {

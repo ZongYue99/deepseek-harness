@@ -1,20 +1,20 @@
 /**
  * On-demand tool loading for one MCP server: the server's tools stay out of the
- * tool registry, a system prompt section lists them, and the server's loader
- * tool registers the selected ones in the calling agent's own scope.
+ * tool registry until a search registers matching tools in the calling agent's scope.
  *
  * @module
  */
 
+import MiniSearch from 'minisearch'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { truncateWithoutSplittingSurrogatePair } from '@deepseek-ai/dsh-output-retention'
 import { createScope, type Scope, type ScopeKey } from '@deepseek-ai/dsh-scope'
-import { defineTool, type ToolDefinition } from '@deepseek-ai/dsh-tools'
-import { publicToolName } from './tools.ts'
+import { defineTool, ToolArgsError, ToolContextUnavailableError, type ToolDefinition } from '@deepseek-ai/dsh-tools'
+import { McpToolRegistrationError, publicToolName } from './tools.ts'
 
 /** Raw name of the loader tool inside the server's `mcp__<serverName>__` namespace. */
-export const LOADER_RAW_NAME = 'load_tools'
+export const LOADER_RAW_NAME = 'search_tools'
 
 /** One agent's loaded tools from this server. */
 interface AgentLoads {
@@ -26,7 +26,7 @@ interface AgentLoads {
 }
 
 /**
- * Owns one on-demand server's loader tool, its prompt catalog, and each agent's
+ * Owns one on-demand server's search tool, its discovery prompt, and each agent's
  * loaded tools. A published generation registers the loader and re-registers
  * every agent's loaded tools that the generation still offers.
  */
@@ -36,28 +36,36 @@ export class McpToolLoader {
   private readonly tool: ToolDefinition
   /** The published generation's tools by raw name; empty while none is published. */
   private offered: ReadonlyMap<string, ToolDefinition> = new Map()
+  private index = this.createIndex()
   private readonly loads = new Map<Agent, AgentLoads>()
 
   /**
    * Define the loader and release each agent's loaded tools with the agent.
    * @param ctx - the server plugin's context; it owns the loader and the agents' scopes.
    * @param serverName - the server's tool namespace.
-   * @param descriptionMaxLength - maximum characters of each tool's catalog summary.
+   * @param descriptionMaxLength - maximum characters of each search result's summary.
+   * @param resultLimit - maximum tools loaded by one search.
    */
-  constructor(private readonly ctx: Context, private readonly serverName: string, private readonly descriptionMaxLength: number) {
+  constructor(
+    private readonly ctx: Context,
+    private readonly serverName: string,
+    private readonly descriptionMaxLength: number,
+    private readonly resultLimit: number,
+  ) {
     this.name = publicToolName(serverName, LOADER_RAW_NAME)
     this.tool = defineTool({
       name: this.name,
-      description: `Add tools from MCP server ${serverName} to your tool list. The system prompt lists them under "On-demand tools from MCP server ${serverName}".`,
+      description: `Search for tools from MCP server ${serverName} and make matching tools available for your next call. Returns their callable names and summaries.`,
       parameters: {
-        tools: { type: 'array', required: true, items: { type: 'string' }, description: 'Tool names exactly as that list shows them.' },
+        query: { type: 'string', required: true, description: 'Task keywords or an exact tool name.' },
+        limit: { type: 'integer', description: `Maximum tools to load, from 1 to ${resultLimit}; defaults to ${resultLimit}.` },
       },
       output: {
         schema: { type: 'string' },
         render: (_args, value) => [{ type: 'text', text: value }],
       },
       // The executor turns a synchronous validation failure into a rejected call.
-      execute: (args, exec) => new Promise((resolve) => { resolve(this.load(args.tools, exec.agent)) }),
+      execute: (args, exec) => new Promise((resolve) => { resolve(this.search(args.query, args.limit ?? this.resultLimit, exec.agent)) }),
     })
     ctx.on('agent/disposed', ({ agent }) => {
       const loads = this.loads.get(agent)
@@ -79,8 +87,11 @@ export class McpToolLoader {
    * @throws when the loader name is already registered; nothing is published then.
    */
   publish(tools: ReadonlyMap<string, ToolDefinition>): () => void {
+    const index = this.createIndex()
+    index.addAll([...tools].map(([id, tool]) => ({ id, name: id, description: tool.description })))
     const unregister = this.ctx.tools.register(this.tool)
     this.offered = tools
+    this.index = index
     for (const loads of this.loads.values()) {
       for (const name of loads.names) {
         const definition = tools.get(name)
@@ -91,6 +102,7 @@ export class McpToolLoader {
     return () => {
       unregister()
       this.offered = new Map()
+      this.index = this.createIndex()
       for (const loads of this.loads.values()) {
         for (const dispose of loads.registered.values()) dispose()
         loads.registered.clear()
@@ -99,21 +111,40 @@ export class McpToolLoader {
   }
 
   /**
-   * Render the system prompt catalog for one assembly.
+   * Render service-level discovery instructions for one assembly.
    * @param scope - the assembling agent, or undefined for the global view.
-   * @returns the catalog, or an empty string when no generation is published or the scope cannot see the loader.
+   * @returns discovery instructions, or an empty string when no generation is published or the scope cannot see the loader.
    */
   catalog(scope: ScopeKey | undefined): string {
     if (this.offered.size === 0 || this.ctx.tools.get(this.name, scope) !== this.tool) return ''
-    const tools = [...this.offered].sort(([a], [b]) => a < b ? -1 : 1).map(([name, definition]) => {
-      const summary = this.summary(definition.description)
-      return summary === '' ? `- ${name}` : `- ${name}: ${summary}`
+    return `### Tools from MCP server ${this.serverName}\n\nSearch with ${this.name} to find and load tools before using them.`
+  }
+
+  private createIndex(): MiniSearch {
+    const segmenter = new Intl.Segmenter('en', { granularity: 'word' })
+    return new MiniSearch({
+      fields: ['name', 'description'],
+      tokenize: text => [...segmenter.segment(text.normalize('NFKC').replaceAll('_', ' '))]
+        .filter(part => part.isWordLike).map(part => part.segment),
     })
-    return [
-      `### On-demand tools from MCP server ${this.serverName}`,
-      `These tools are not in your tool list. Before calling one, load it with ${this.name}.`,
-      tools.join('\n'),
-    ].join('\n\n')
+  }
+
+  private search(query: string, limit: number, agent: Agent | undefined): string {
+    if (agent === undefined) throw new ToolContextUnavailableError(`${this.name} requires an agent`)
+    if (query.trim() === '') throw new ToolArgsError(['query must contain task keywords or a tool name'])
+    if (limit < 1 || limit > this.resultLimit) throw new ToolArgsError([`limit must be between 1 and ${this.resultLimit}`])
+    const exact = [...this.offered].find(([name, tool]) => name === query.trim() || tool.name === query.trim())
+    const names = exact === undefined
+      ? this.index.search(query).slice(0, limit).map(hit => hit.id as string)
+      : [exact[0]]
+    if (names.length === 0) return 'No matching tools. Try different keywords or an exact tool name.'
+    this.load(names, agent)
+    return 'Available for your next call:\n' + names.map((name) => {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- search results belong to the current generation
+      const tool = this.offered.get(name)!
+      const summary = this.summary(tool.description)
+      return summary === '' ? `- ${tool.name}` : `- ${tool.name}: ${summary}`
+    }).join('\n')
   }
 
   /** First description line with whitespace collapsed, capped at the configured length. */
@@ -124,36 +155,28 @@ export class McpToolLoader {
     return truncateWithoutSplittingSurrogatePair(line, this.descriptionMaxLength - 3) + '...'
   }
 
-  /** Validate every requested name before registering any in the agent's own scope. */
-  private load(requested: readonly string[], agent: Agent | undefined): string {
-    if (agent === undefined) throw new Error(`${this.name} requires an agent`)
-    if (requested.length === 0) throw new Error(`${this.name} requires at least one tool name`)
-    const unknown = requested.filter(name => !this.offered.has(name))
-    if (unknown.length > 0) {
-      throw new Error(`MCP server ${this.serverName} does not offer ${unknown.map(name => `"${name}"`).join(', ')}; use names from its on-demand tool list`)
-    }
+  /** Register search matches atomically in the calling agent's own scope. */
+  private load(requested: readonly string[], agent: Agent): void {
     let loads = this.loads.get(agent)
     if (loads === undefined) {
       loads = { scope: createScope(this.ctx, agent), names: new Set(), registered: new Map() }
       this.loads.set(agent, loads)
     }
-    const loaded: string[] = []
-    const present: string[] = []
-    for (const name of new Set(requested)) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- every requested name is offered
-      const definition = this.offered.get(name)!
-      if (loads.registered.has(name)) {
-        present.push(definition.name)
-        continue
+    const added = new Map<string, () => void>()
+    try {
+      for (const name of requested) {
+        if (loads.registered.has(name)) continue
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- names come from this generation's index
+        added.set(name, loads.scope.ctx.tools.register(this.offered.get(name)!))
       }
-      loads.registered.set(name, loads.scope.ctx.tools.register(definition))
-      loads.names.add(name)
-      loaded.push(definition.name)
+    } catch (cause) {
+      for (const dispose of added.values()) dispose()
+      throw new McpToolRegistrationError('Tool search could not load matching tools; no new tools were loaded.', { cause })
     }
-    return [
-      ...loaded.length > 0 ? [`Loaded: ${loaded.join(', ')}.`] : [],
-      ...present.length > 0 ? [`Already loaded: ${present.join(', ')}.`] : [],
-    ].join('\n')
+    for (const [name, dispose] of added) {
+      loads.registered.set(name, dispose)
+      loads.names.add(name)
+    }
   }
 
   /** Register one loaded tool for one agent; a failure drops only that tool for that agent. */
