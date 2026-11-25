@@ -1,0 +1,10 @@
+version: 1
+scenario: mcp-tool-loading-ptc
+profile: headless
+composition: mcp-tool-loading-ptc
+recording: authored
+header:
+  class: mcp-tool-loading-ptc
+  pin: true
+  promptChanges: 1
+  toolSchemasSource: ptc-turn

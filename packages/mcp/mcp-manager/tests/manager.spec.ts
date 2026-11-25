@@ -130,7 +130,7 @@ const anyNumber = expect.any(Number) as number
 const containing = (text: string): string => expect.stringContaining(text) as string
 
 function stdioEntry(overrides?: Record<string, unknown>): Record<string, unknown> {
-  return { transport: 'stdio', command: 'echo', ...overrides }
+  return { toolLoading: 'eager', transport: 'stdio', command: 'echo', ...overrides }
 }
 
 function listing(...names: string[]): { tools: { name: string; inputSchema: { type: string } }[]; nextCursor: undefined } {
@@ -198,7 +198,7 @@ describe('mcp-manager', () => {
   it('requires OAuth configuration and a credential provider for explicit operations', async () => {
     const { manager } = await mountWorld({ managerConfig: { servers: {
       off: stdioEntry({ enabled: false }),
-      oauth: { transport: 'streamable-http', url: 'https://example.invalid', enabled: false, oauth: { credentialKey: 'mcp-client/oauth' } },
+      oauth: { toolLoading: 'eager', transport: 'streamable-http', url: 'https://example.invalid', enabled: false, oauth: { credentialKey: 'mcp-client/oauth' } },
     } } })
     await expect(manager.startAuthorization('off')).rejects.toThrow('OAuth is not configured')
     await expect(manager.signOut('off')).rejects.toThrow('OAuth is not configured')
@@ -248,14 +248,14 @@ describe('mcp-manager', () => {
     expect(transportConfigs.at(-1)).toMatchObject({ command: 'echo', args: ['--fast'] })
   })
 
-  it('passes on-demand tool loading to the managed instance', async () => {
+  it('defaults managed instances to on-demand tool search', async () => {
     mockListTools.mockResolvedValue(listing('remote'))
     const { ctx, manager } = await mountWorld({
-      settingsDoc: { mcp: { servers: { lazy: stdioEntry({ toolLoading: 'on-demand' }) } } },
+      settingsDoc: { mcp: { servers: { lazy: { transport: 'stdio', command: 'echo' } } } },
     })
     await waitForState(manager, 'lazy', 'connected')
 
-    expect(ctx.tools.get('mcp__lazy__load_tools')).toBeDefined()
+    expect(ctx.tools.get('mcp__lazy__search_tools')).toBeDefined()
     expect(ctx.tools.get('mcp__lazy__remote')).toBeUndefined()
   })
 
@@ -306,8 +306,8 @@ describe('mcp-manager', () => {
       settingsDoc: {
         mcp: {
           servers: {
-            remote: { transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: 'Bearer ${credential:MCP_SPEC_TOKEN}' } },
-            dormant: { transport: 'streamable-http', url: 'http://localhost:2', headers: { Authorization: '${credential:MCP_SPEC_TOKEN}' }, enabled: false },
+            remote: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: 'Bearer ${credential:MCP_SPEC_TOKEN}' } },
+            dormant: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:2', headers: { Authorization: '${credential:MCP_SPEC_TOKEN}' }, enabled: false },
           },
         },
       },
@@ -341,6 +341,7 @@ describe('mcp-manager', () => {
       const { ctx, manager, credentials } = await mountWorld({
         withSettings: false, withCredentials: true,
         managerConfig: { servers: { remote: {
+          toolLoading: 'eager',
           transport: 'streamable-http', url: 'http://localhost:1',
           headers: { Authorization: '${credential:MCP_SPEC_RETRY}' },
           reconnect: { initialDelayMs: 1_000, maxDelayMs: 1_000, maxAttempts: 1 },
@@ -371,6 +372,7 @@ describe('mcp-manager', () => {
     const { manager, credentials } = await mountWorld({
       withCredentials: true,
       settingsDoc: { mcp: { servers: { remote: {
+        toolLoading: 'eager',
         transport: 'streamable-http', url: 'http://localhost:1',
         headers: { Authorization: 'Bearer ${credential:MCP_SPEC_HTTP}' },
       } } } },
@@ -485,7 +487,7 @@ describe('mcp-manager', () => {
       settingsDoc: {
         mcp: {
           servers: {
-            remote: { transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_TOKEN}' } },
+            remote: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_TOKEN}' } },
           },
         },
       },
@@ -500,6 +502,7 @@ describe('mcp-manager', () => {
   it('reports a load failure when the serverName collides with a static instance', async () => {
     const { ctx, manager, settings } = await mountWorld()
     await applyMcpClient(ctx, ClientConfig({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'dup',
       command: 'echo',
@@ -832,7 +835,7 @@ describe('mcp-manager', () => {
 
   it.each(['removed configuration', 'failed probe cleanup'] as const)('settles failed startup alongside %s during credential resolution', async (action) => {
     const { ctx, manager, settings, credentials, events } = await mountWorld({ withCredentials: true })
-    await applyMcpClient(ctx, ClientConfig({ transport: 'stdio', serverName: 'dup', command: 'static' }))
+    await applyMcpClient(ctx, ClientConfig({ toolLoading: 'eager', transport: 'stdio', serverName: 'dup', command: 'static' }))
     const entered: PromiseWithResolvers<void> = Promise.withResolvers()
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const resolution = gate.promise.then(() => ({ value: 'token', source: 'memory' }))
@@ -950,7 +953,7 @@ describe('mcp-manager', () => {
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     credentials!.resolveGate = gate.promise
     await settings!.update('mcp', {
-      servers: { fleeting: { transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_FLEETING}' } } },
+      servers: { fleeting: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_FLEETING}' } } },
     })
     await vi.waitFor(() => {
       expect(events.some(event => event.name === 'fleeting' && event.status.state === 'connecting')).toBe(true)
@@ -998,7 +1001,7 @@ describe('mcp-manager', () => {
     const { manager, settings, credentials } = await mountWorld({
       withCredentials: true,
       settingsDoc: {
-        mcp: { servers: { vanishing: { transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_VANISH}' } } } },
+        mcp: { servers: { vanishing: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_VANISH}' } } } },
       },
     })
     // Let the boot mount settle as a resolve failure before the credential
@@ -1026,7 +1029,7 @@ describe('mcp-manager', () => {
     const { ctx, manager, settings, credentials, managerFiber, events } = await mountWorld({
       withCredentials: true,
       settingsDoc: {
-        mcp: { servers: { gated: { transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_GATE}' } } } },
+        mcp: { servers: { gated: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', headers: { Authorization: '${credential:MCP_SPEC_GATE}' } } } },
       },
     })
     const errors: string[] = []
@@ -1060,7 +1063,7 @@ describe('mcp-manager', () => {
     const registrar = ctx.plugin({
       name: 'registrar',
       inject: ['mcpManager'],
-      apply(child: Context) { child.mcpManager.register('app', { transport: 'stdio', command: 'echo' }) },
+      apply(child: Context) { child.mcpManager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' }) },
     })
     await registrar.await()
     await waitForState(manager, 'app', 'connected')
@@ -1073,11 +1076,11 @@ describe('mcp-manager', () => {
 
   it('rejects a registration that takes a configured or registered name or carries an invalid entry', async () => {
     const { manager } = await mountWorld({ managerConfig: { servers: { base: stdioEntry() } }, withSettings: false })
-    expect(() => manager.register('base', { transport: 'stdio', command: 'echo' })).toThrow('already configured or registered')
-    const dispose = manager.register('app', { transport: 'stdio', command: 'echo' })
-    expect(() => manager.register('app', { transport: 'stdio', command: 'echo' })).toThrow('already configured or registered')
+    expect(() => manager.register('base', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })).toThrow('already configured or registered')
+    const dispose = manager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })
+    expect(() => manager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })).toThrow('already configured or registered')
     expect(() => manager.register('bare', { transport: 'stdio' })).toThrow('requires "command"')
-    expect(() => manager.register('bad name', { transport: 'stdio', command: 'echo' })).toThrow('server name must match')
+    expect(() => manager.register('bad name', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })).toThrow('server name must match')
     dispose()
     dispose()
     await vi.waitFor(() => { expect(manager.list().map(view => view.name)).toEqual(['base']) })
@@ -1085,13 +1088,13 @@ describe('mcp-manager', () => {
 
   it('refuses a settings entry that takes a registered name', async () => {
     const { manager, settings } = await mountWorld()
-    manager.register('app', { transport: 'stdio', command: 'echo' })
+    manager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })
     await expect(settings!.update('mcp', { servers: { app: stdioEntry() } })).rejects.toThrow('a plugin already registers this server name')
   })
 
   it('restarts and probes a registered server through its Remote operations', async () => {
     const { manager } = await mountWorld({ withSettings: false })
-    manager.register('app', { transport: 'stdio', command: 'echo' })
+    manager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })
     await waitForState(manager, 'app', 'connected')
     const clients = instances.length
     await manager.restart('app')
@@ -1104,11 +1107,11 @@ describe('mcp-manager', () => {
     const { ctx, manager, managerFiber } = await mountWorld({ withSettings: false })
     const errors: string[] = []
     ctx.logger.error = ((message: unknown) => { errors.push(String(message)) }) as typeof ctx.logger.error
-    const dispose = manager.register('app', { transport: 'stdio', command: 'echo' })
+    const dispose = manager.register('app', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })
     await waitForState(manager, 'app', 'connected')
     await managerFiber.dispose()
     dispose()
-    expect(() => manager.register('late', { transport: 'stdio', command: 'echo' })).toThrow('the manager is disposed')
+    expect(() => manager.register('late', { toolLoading: 'eager', transport: 'stdio', command: 'echo' })).toThrow('the manager is disposed')
     expect(errors).toEqual([])
   })
 
@@ -1144,13 +1147,13 @@ describe('entry schema bounds', () => {
     [{ startupTimeoutMs: -5 }],
   ])('refuses %j at the write instead of at mount', (patch) => {
     expect(() => {
-      McpServerManager.Config({ servers: { a: { transport: 'stdio', command: 'echo', ...patch } } })
+      McpServerManager.Config({ servers: { a: { toolLoading: 'eager', transport: 'stdio', command: 'echo', ...patch } } })
     }).toThrow()
   })
 
   it('accepts in-bounds overrides', () => {
     expect(() => {
-      McpServerManager.Config({ servers: { a: { transport: 'stdio', command: 'echo', startupTimeoutMs: 5_000 } } })
+      McpServerManager.Config({ servers: { a: { toolLoading: 'eager', transport: 'stdio', command: 'echo', startupTimeoutMs: 5_000 } } })
     }).not.toThrow()
   })
 })
@@ -1161,42 +1164,42 @@ describe('entry validation at construction', () => {
 
   it('lists configured entries by their enablement before the first reconcile publishes status', () => {
     const manager = new McpServerManager(new Context(), base({
-      on: { transport: 'stdio', command: 'echo', enabled: true },
-      off: { transport: 'stdio', command: 'echo', enabled: false },
+      on: { toolLoading: 'eager', transport: 'stdio', command: 'echo', enabled: true },
+      off: { toolLoading: 'eager', transport: 'stdio', command: 'echo', enabled: false },
     }))
     expect(manager.list().map(view => view.status)).toEqual([{ state: 'connecting', attempt: 0 }, { state: 'disabled' }])
   })
 
   it('rejects ${env:…} templates and names the credential syntax', () => {
     expect(() => {
-      new McpServerManager(new Context(), base({ a: { transport: 'stdio', command: 'echo', env: { K: '${env:K}' } } }))
+      new McpServerManager(new Context(), base({ a: { toolLoading: 'eager', transport: 'stdio', command: 'echo', env: { K: '${env:K}' } } }))
     }).toThrow('use ${credential:REF}')
   })
 
   it('accepts a well-formed stdio and streamable-http pair', () => {
     expect(() => {
       new McpServerManager(new Context(), base({
-        local: { transport: 'stdio', command: 'echo', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true },
-        remote: { transport: 'streamable-http', url: 'http://localhost:1', command: '', args: [], env: {}, cwd: '', headers: {}, enabled: true },
+        local: { toolLoading: 'eager', transport: 'stdio', command: 'echo', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true },
+        remote: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://localhost:1', command: '', args: [], env: {}, cwd: '', headers: {}, enabled: true },
       }))
     }).not.toThrow()
   })
 
   it.each([
-    [{ 'bad name!': { transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /server name must match/],
-    [{ a: { transport: 'stdio', command: '', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /requires "command"/],
-    [{ a: { transport: 'stdio', command: 'x', url: 'http://x', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /"url" is not a stdio field/],
-    [{ a: { transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: { h: 'v' }, enabled: true } }, /"headers" is not a stdio field/],
-    [{ a: { transport: 'streamable-http', url: '', command: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /requires "url"/],
-    [{ a: { transport: 'streamable-http', url: 'http://x', command: 'x', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /"command" is not a streamable-http field/],
-    [{ a: { transport: 'streamable-http', url: 'http://x', command: '', args: ['x'], env: {}, cwd: '', headers: {}, enabled: true } }, /"args" is not a streamable-http field/],
-    [{ a: { transport: 'streamable-http', url: 'http://x', command: '', args: [], env: { k: 'v' }, cwd: '', headers: {}, enabled: true } }, /"env" is not a streamable-http field/],
-    [{ a: { transport: 'streamable-http', url: 'http://x', command: '', args: [], env: {}, cwd: '/tmp', headers: {}, enabled: true } }, /"cwd" is not a streamable-http field/],
-    [{ a: { transport: 'stdio', command: 'x', url: '', args: [], env: { k: '${vault:nope}' }, cwd: '', headers: {}, enabled: true } }, /not a template token/],
+    [{ 'bad name!': { toolLoading: 'eager', transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /server name must match/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: '', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /requires "command"/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: 'x', url: 'http://x', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /"url" is not a stdio field/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: { h: 'v' }, enabled: true } }, /"headers" is not a stdio field/],
+    [{ a: { toolLoading: 'eager', transport: 'streamable-http', url: '', command: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /requires "url"/],
+    [{ a: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://x', command: 'x', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /"command" is not a streamable-http field/],
+    [{ a: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://x', command: '', args: ['x'], env: {}, cwd: '', headers: {}, enabled: true } }, /"args" is not a streamable-http field/],
+    [{ a: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://x', command: '', args: [], env: { k: 'v' }, cwd: '', headers: {}, enabled: true } }, /"env" is not a streamable-http field/],
+    [{ a: { toolLoading: 'eager', transport: 'streamable-http', url: 'http://x', command: '', args: [], env: {}, cwd: '/tmp', headers: {}, enabled: true } }, /"cwd" is not a streamable-http field/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: 'x', url: '', args: [], env: { k: '${vault:nope}' }, cwd: '', headers: {}, enabled: true } }, /not a template token/],
     // A nested `${` merely CONTAINS a valid token; the resolver would leave
     // its prefix behind as a literal, so the write must refuse it.
-    [{ a: { transport: 'stdio', command: '${x${credential:A}', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /not a template token/],
-    [{ a: { transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true, reconnect: { enabled: true, initialDelayMs: 5_000, maxDelayMs: 100, maxAttempts: 3 } } }, /initialDelayMs must be less than or equal to maxDelayMs/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: '${x${credential:A}', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true } }, /not a template token/],
+    [{ a: { toolLoading: 'eager', transport: 'stdio', command: 'x', url: '', args: [], env: {}, cwd: '', headers: {}, enabled: true, reconnect: { enabled: true, initialDelayMs: 5_000, maxDelayMs: 100, maxAttempts: 3 } } }, /initialDelayMs must be less than or equal to maxDelayMs/],
   ])('rejects %j', (servers, expected) => {
     expect(() => {
       new McpServerManager(new Context(), base(servers))

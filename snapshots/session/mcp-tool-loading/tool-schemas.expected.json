@@ -288,21 +288,22 @@
       }
     },
     {
-      "name": "mcp__demo__load_tools",
-      "description": "Add tools from MCP server demo to your tool list. The system prompt lists them under \"On-demand tools from MCP server demo\".",
+      "name": "mcp__demo__search_tools",
+      "description": "Search for tools from MCP server demo and make matching tools available for your next call. Returns their callable names and summaries.",
       "parameters": {
         "type": "object",
         "properties": {
-          "tools": {
-            "type": "array",
-            "description": "Tool names exactly as that list shows them.",
-            "items": {
-              "type": "string"
-            }
+          "query": {
+            "type": "string",
+            "description": "Task keywords or an exact tool name."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum tools to load, from 1 to 8; defaults to 8."
           }
         },
         "required": [
-          "tools"
+          "query"
         ]
       }
     },
@@ -988,31 +989,32 @@
         }
       },
       {
-        "name": "mcp__demo__load_tools",
-        "description": "Add tools from MCP server demo to your tool list. The system prompt lists them under \"On-demand tools from MCP server demo\".",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "tools": {
-              "type": "array",
-              "description": "Tool names exactly as that list shows them.",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "required": [
-            "tools"
-          ]
-        }
-      },
-      {
         "name": "mcp__demo__ping",
         "description": "Replies pong.",
         "parameters": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "mcp__demo__search_tools",
+        "description": "Search for tools from MCP server demo and make matching tools available for your next call. Returns their callable names and summaries.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Task keywords or an exact tool name."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum tools to load, from 1 to 8; defaults to 8."
+            }
+          },
+          "required": [
+            "query"
+          ]
         }
       },
       {

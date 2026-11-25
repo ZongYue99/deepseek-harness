@@ -60,7 +60,7 @@ describe('mcp-manager real composition', () => {
     const ctx = await registry()
     const id = 'managed-mcp'
     const { profile, entry, start } = await managerProfile(ctx, {
-      id, base: { servers: { base: { transport: 'stdio', command: 'echo' } } },
+      id, base: { servers: { base: { toolLoading: 'eager', transport: 'stdio', command: 'echo' } } },
     })
     ctx.provide('appReady', { onReady: (listener: () => void) => { listener(); return () => {} } })
     await ctx.plugin(Timer)
@@ -72,7 +72,7 @@ describe('mcp-manager real composition', () => {
     expect(manager.list()).toHaveLength(1)
 
     await writeFile(profile.patchPath, JSON.stringify([{ id, config: {
-      servers: { base: { transport: 'stdio', command: 'echo' }, added: { transport: 'stdio', command: 'echo' } },
+      servers: { base: { toolLoading: 'eager', transport: 'stdio', command: 'echo' }, added: { toolLoading: 'eager', transport: 'stdio', command: 'echo' } },
     } }]))
     await vi.waitFor(() => { expect(ctx.tools.get('mcp__added__remote')).toBeDefined() }, { timeout: 5_000 })
     expect(entry.fiber).toBe(fiber)
@@ -98,7 +98,7 @@ describe('mcp-manager real composition', () => {
   it('rejects invalid server edits before persistence', async () => {
     const ctx = await registry()
     const { profile, entry } = await managerProfile(ctx, {
-      base: { servers: { base: { transport: 'stdio', command: 'echo' } } },
+      base: { servers: { base: { toolLoading: 'eager', transport: 'stdio', command: 'echo' } } },
     })
     await vi.waitFor(() => { expect(ctx.tools.get('mcp__base__remote')).toBeDefined() })
     const saved = await readFile(profile.patchPath, 'utf8')
@@ -116,9 +116,9 @@ describe('mcp-manager real composition', () => {
     const { profile } = await managerProfile(ctx, { base: { servers: {} } })
     const saved = await readFile(profile.patchPath, 'utf8')
     const oauth = { credentialKey: 'mcp-client/shared' }
-    const http = { transport: 'streamable-http', url: 'https://example.invalid/mcp', oauth, enabled: false }
+    const http = { toolLoading: 'eager', transport: 'streamable-http', url: 'https://example.invalid/mcp', oauth, enabled: false }
     for (const servers of [
-      { one: { transport: 'stdio', command: 'echo', oauth } },
+      { one: { toolLoading: 'eager', transport: 'stdio', command: 'echo', oauth } },
       { one: { ...http, headers: { AUTHORIZATION: 'private' } } },
       { one: { ...http, oauth: { credentialKey: 'invalid' } } },
       { one: { ...http, oauth: { credentialKey: 'deepseek-account-platform/default' } } },
@@ -135,6 +135,7 @@ describe('mcp-manager real composition', () => {
     const { profile } = await managerProfile(ctx, { base: { servers: {} } })
     const saved = await readFile(profile.patchPath, 'utf8')
     await expect(ctx.settings.update('mcp', { servers: { one: {
+      toolLoading: 'eager',
       transport: 'streamable-http', url: 'https://example.invalid/mcp', oauth: { credentialKey: 'mcp-client/Foo' }, enabled: false,
     } } })).rejects.toThrow('servers.one.oauth.credentialKey: credential key segment "Foo" must match')
     expect(await readFile(profile.patchPath, 'utf8')).toBe(saved)
@@ -146,6 +147,7 @@ describe('mcp-manager real composition', () => {
     const { profile } = await managerProfile(ctx, { base: { servers: {} } })
     const saved = await readFile(profile.patchPath, 'utf8')
     await expect(ctx.settings.update('mcp', { servers: { one: {
+      toolLoading: 'eager',
       transport: 'streamable-http', url: 'https://example.invalid/mcp', oauth: {}, enabled: false,
     } } })).rejects.toThrow('servers.one.oauth expected')
     expect(await readFile(profile.patchPath, 'utf8')).toBe(saved)

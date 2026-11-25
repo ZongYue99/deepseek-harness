@@ -22,6 +22,7 @@ const { mockTransport } = vi.hoisted(() => ({ mockTransport: vi.fn<() => Transpo
 vi.mock('../src/transport.ts', () => ({ createTransport: mockTransport }))
 
 const config = Config({
+  toolLoading: 'eager',
   transport: 'stdio', serverName: 'fixture', command: 'fixture', args: [], env: {}, cwd: '',
   toolCallTimeoutMs: 60_000, startupTimeoutMs: 30_000, failOnStartupError: true,
 })

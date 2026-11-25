@@ -1145,6 +1145,7 @@ describe('tool execution', () => {
 describe('createTransport', () => {
   it('creates StdioClientTransport for stdio config', () => {
     const config = Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'srv',
       command: 'node',
@@ -1163,6 +1164,7 @@ describe('createTransport', () => {
 
   it('creates StreamableHTTPClientTransport for http config without headers', () => {
     const config = Config({
+      toolLoading: 'eager',
       transport: 'streamable-http',
       serverName: 'srv',
       url: 'http://localhost:3000/mcp',
@@ -1179,6 +1181,7 @@ describe('createTransport', () => {
 
   it('creates StreamableHTTPClientTransport for http config with headers', () => {
     const config = Config({
+      toolLoading: 'eager',
       transport: 'streamable-http',
       serverName: 'srv',
       url: 'http://localhost:3000/mcp',
@@ -1202,6 +1205,7 @@ describe('createTransport', () => {
       process.env.AUTH_TOKEN = 'hidden'
 
       const config = Config({
+        toolLoading: 'eager',
         transport: 'stdio',
         serverName: 'srv',
         command: 'echo',
@@ -1229,6 +1233,7 @@ describe('createTransport', () => {
 
   it('merges explicit env on top of scrubbed ambient env', () => {
     const config = Config({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'srv',
       command: 'echo',

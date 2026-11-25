@@ -2729,7 +2729,7 @@ export interface LspLocalServerConfig {
 ## `@deepseek-ai/dsh-mcp-client`
 
 - `inject`: `tools`
-- `source`: [`packages/mcp/mcp-client/src/index.ts:136`](../packages/mcp/mcp-client/src/index.ts)
+- `source`: [`packages/mcp/mcp-client/src/index.ts:140`](../packages/mcp/mcp-client/src/index.ts)
 
 ```ts config-catalog
 /** Configuration for one stdio or Streamable HTTP MCP server. */
@@ -2767,10 +2767,12 @@ export interface StdioConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` lists the server's tools for agents to load instead of registering them (default `eager`). */
+  /** `on-demand` exposes tools through search; `eager` registers every tool immediately (default `on-demand`). */
   toolLoading: 'eager' | 'on-demand'
-  /** Maximum characters of each tool's summary in an on-demand server's prompt catalog (default 160). */
+  /** Maximum characters of each tool's summary in on-demand search results (default 160). */
   catalogDescriptionMaxLength: number
+  /** Maximum tools loaded by one search (default 8). */
+  searchResultLimit: number
 }
 
 /** Config for connecting to an MCP server over Streamable HTTP (SSE). */
@@ -2803,10 +2805,12 @@ export interface StreamableHttpConfig {
   maxInstructionBytes?: number
   /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` lists the server's tools for agents to load instead of registering them (default `eager`). */
+  /** `on-demand` exposes tools through search; `eager` registers every tool immediately (default `on-demand`). */
   toolLoading: 'eager' | 'on-demand'
-  /** Maximum characters of each tool's summary in an on-demand server's prompt catalog (default 160). */
+  /** Maximum characters of each tool's summary in on-demand search results (default 160). */
   catalogDescriptionMaxLength: number
+  /** Maximum tools loaded by one search (default 8). */
+  searchResultLimit: number
 }
 
 /** Automatic reconnect policy for one MCP server connection. */
@@ -2886,7 +2890,7 @@ export interface McpManagedServerEntry {
   closeTimeoutMs?: number
   /** Reconnect policy; the MCP client host validates it, and omission uses the mcp-client defaults. */
   reconnect?: ReconnectConfig
-  /** `on-demand` keeps the server's tools out of every tool list until an agent loads them; default `eager`. */
+  /** `on-demand` keeps the server's tools out of every tool list until an agent loads them; default `on-demand`. */
   toolLoading: 'eager' | 'on-demand'
 }
 ```

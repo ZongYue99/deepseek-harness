@@ -336,6 +336,7 @@ it('registers an OAuth server, streams its authorization, and redacts its access
   await managerProfile(world.ctx, { base: { servers: {} } })
   const manager = world.ctx.mcpManager
   manager.register('oauth', {
+    toolLoading: 'eager',
     transport: 'streamable-http', url: world.origin + '/mcp', oauth: { credentialKey: 'mcp-client/oauth' }, reconnect: { enabled: false },
   })
   const subscriber = new AbortController()
@@ -364,6 +365,7 @@ it('refuses a registration whose OAuth credential key a configured entry already
   const world = await oauthWorld()
   await managerProfile(world.ctx, { base: { servers: { configured: { ...world.config, enabled: false } } } })
   expect(() => world.ctx.mcpManager.register('registered', {
+    toolLoading: 'eager',
     transport: 'streamable-http', url: world.origin + '/mcp', oauth: { credentialKey: 'mcp-client/oauth' },
   })).toThrow('OAuth credentialKey is already assigned to another server')
   expect(world.ctx.mcpManager.list().map(view => view.name)).toEqual(['configured'])

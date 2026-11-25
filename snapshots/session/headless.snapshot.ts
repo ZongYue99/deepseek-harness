@@ -1418,7 +1418,7 @@ describe('headless recorded-session snapshots', () => {
       const spillRoot = await mkdtemp(join(tmpdir(), 'acp-snap-spill-'))
       const fixturePath = join(scenario.dir, fixtureFiles[0] ?? sessionFixtureName(0, SESSION_FORMAT_VERSION))
       const locatorRoot = snapshotSpillRoot(fixturePath)
-      const mcpDemo = ['plugin-manager-mcp', 'mcp-template-error', 'mcp-oauth-error', 'mcp-tool-loading', 'linear-plugin', 'notion-plugin', 'tencent-docs-plugin'].includes(scenario.name)
+      const mcpDemo = ['plugin-manager-mcp', 'mcp-template-error', 'mcp-oauth-error', 'mcp-tool-loading', 'mcp-tool-loading-ptc', 'linear-plugin', 'notion-plugin', 'tencent-docs-plugin'].includes(scenario.name)
         ? await startHttpMcpFixture({ rejectToolCalls: scenario.name === 'mcp-template-error', authorizationFailure: scenario.name === 'mcp-oauth-error' }) : undefined
       let result: Awaited<ReturnType<typeof runLoaderSmoke>>
       try {
@@ -1526,11 +1526,20 @@ describe('headless recorded-session snapshots', () => {
               expect(mcpDemo.authorization.length).toBeGreaterThan(1)
               expect(mcpDemo.authorization.every(value => value === `Bearer ${secret!}`)).toBe(true)
             }
-            if (scenario.name === 'mcp-tool-loading' && mcpDemo !== undefined) {
-              // The on-demand tool joins the request only after the agent loads it.
-              const headers = parseSessionLog(actualLogs[0]!.content).flatMap(event => event.type === 'request/header' ? [event.data.header] : [])
-              expect(headers[0]?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(false)
-              expect(headers.at(-1)?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(true)
+            if (scenario.name.startsWith('mcp-tool-loading') && mcpDemo !== undefined) {
+              const log = actualLogs[0]!.content
+              if (scenario.name.endsWith('-ptc')) {
+                const prompts = normalizedSystemPrompts(log, contextOf([log]))
+                expect(prompts[0]).not.toContain('mcp__demo__ping')
+                expect(prompts.slice(1).join('\n')).toContain('mcp__demo__ping')
+                const dispatches = parseSessionLog(log).flatMap(event => event.type === 'tool/ptc-dispatch' ? [event.data] : [])
+                expect(dispatches.map(dispatch => dispatch.name)).toEqual(['mcp__demo__search_tools', 'mcp__demo__ping'])
+                expect(dispatches.every(dispatch => !dispatch.isError)).toBe(true)
+              } else {
+                const headers = parseSessionLog(log).flatMap(event => event.type === 'request/header' ? [event.data.header] : [])
+                expect(headers[0]?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(false)
+                expect(headers.at(-1)?.tools?.some(tool => tool.name === 'mcp__demo__ping')).toBe(true)
+              }
               expect(mcpDemo.calls).toEqual(['ping'])
             }
             if (scenario.name === 'linear-plugin' && mcpDemo !== undefined) {

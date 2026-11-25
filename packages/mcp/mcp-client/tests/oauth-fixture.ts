@@ -120,7 +120,7 @@ export async function oauthWorld(interactive = true, webHost = '127.0.0.1') {
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(Tools)
   await ctx.plugin(NativeToolExecutor)
-  const resolved = Config({ transport: 'streamable-http', serverName: 'oauth', url: origin + '/mcp',
+  const resolved = Config({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'oauth', url: origin + '/mcp',
     headers: { 'x-resource-only': 'fixture-resource-secret' }, oauth: { credentialKey: 'mcp-client/oauth' }, reconnect: { enabled: false } })
   if (resolved.transport !== 'streamable-http' || resolved.oauth === undefined) throw new Error('Missing HTTP OAuth configuration')
   const config: StreamableHttpConfig & { oauth: NonNullable<StreamableHttpConfig['oauth']> } = { ...resolved, oauth: resolved.oauth }

@@ -129,6 +129,7 @@ function captureLogs(ctx: Context): { warns: string[]; errors: string[]; infos: 
 
 function stdioConfig(reconnect?: Config['reconnect']): Config {
   return ConfigSchema({
+    toolLoading: 'eager',
     transport: 'stdio',
     serverName: 'srv',
     command: 'echo',

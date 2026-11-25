@@ -37,7 +37,7 @@ The bundle patch inserts the `linear` row after the profile's other layers. The 
 
 ### Authorize and sign out
 
-The plugin registers the server `linear` with the fixed OAuth credential key `mcp-client/linear`. Without a saved grant the server waits for authorization and exposes no Linear tools. With a saved grant the manager connects at startup and refreshes tokens as needed. Linear's tools load [on demand](../../mcp/mcp-client/README.md#on-demand-tool-loading) by default: the system prompt lists them, and each agent loads the ones it needs with `mcp__linear__load_tools`.
+The plugin registers the server `linear` with the fixed OAuth credential key `mcp-client/linear`. Without a saved grant the server waits for authorization and exposes no Linear tools. With a saved grant the manager connects at startup and refreshes tokens as needed. Linear's tools load [on demand](../../mcp/mcp-client/README.md#on-demand-tool-loading) by default: each agent searches and loads matching tools with `mcp__linear__search_tools`.
 
 While the plugin is on, its page on the **Plugins** page shows a **Linear account** section, and a tag beside the title reads Not connected, Connecting, Connected, Reconnect, or Unavailable. Switching the plugin on from the list while no account is connected offers **Connect Linear**, which opens the plugin's page and starts authorization.
 
@@ -122,7 +122,7 @@ The guidance is prefix-stable: it changes only when the plugin loads or unloads,
 
 #### What the model sees
 
-After authorization, the model sees Linear's server instructions under `### MCP server: linear` and, with the default `toolLoading: on-demand`, the loader `mcp__linear__load_tools` and a [catalog of Linear's tools](../../mcp/mcp-client/README.md#model-experience) in the system prompt; each tool it loads then appears as `mcp__linear__<tool>` with Linear's description and input schema. With `eager`, every tool appears from the start, as the [MCP client](../../mcp/mcp-client/README.md#model-experience) documents. With `on-demand`, the loader and the catalog appear only once Linear is connected. While the plugin is loaded, including before authorization, the [shared resource tools](../../mcp/mcp-resources/README.md#model-experience) and their server-name prompt list `linear`.
+After authorization, the model sees Linear's server instructions and `mcp__linear__search_tools`. Search returns callable names and summaries, then adds matching tool definitions only to that agent; `eager` exposes all definitions immediately. The [MCP client](../../mcp/mcp-client/README.md#model-experience) owns search, name normalization, token and cache behavior. While the plugin is loaded, including before authorization, the [shared resource tools](../../mcp/mcp-resources/README.md#model-experience) list `linear`.
 
 #### Token effect
 

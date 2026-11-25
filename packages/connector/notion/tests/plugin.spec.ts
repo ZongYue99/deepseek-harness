@@ -90,11 +90,11 @@ it('keeps Notion tools hidden from an agent until it loads them, unless loading 
   await onDemand.await()
   await b.authorize()
   expect(b.ctx.tools.get('mcp__notion__ping', agent)).toBeUndefined()
-  expect(b.ctx.tools.get('mcp__notion__load_tools', agent)).toBeDefined()
+  expect(b.ctx.tools.get('mcp__notion__search_tools', agent)).toBeDefined()
   expect(await executeToolFixture(b.ctx, {
-    callId: ToolCallId('notion-load'), name: 'mcp__notion__load_tools', arguments: { tools: ['ping'] },
+    callId: ToolCallId('notion-load'), name: 'mcp__notion__search_tools', arguments: { query: 'ping' },
     signal: new AbortController().signal, agent,
-  })).toMatchObject({ isError: false, value: 'Loaded: mcp__notion__ping.' })
+  })).toMatchObject({ isError: false, value: 'Available for your next call:\n- mcp__notion__ping: Replies pong.' })
   expect(b.ctx.tools.get('mcp__notion__ping', agent)).toBeDefined()
 
   await onDemand.dispose()

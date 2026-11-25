@@ -96,6 +96,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 const stdioConfig = ConfigSchema({
+  toolLoading: 'eager',
   transport: 'stdio',
   serverName: 'srv',
   command: 'echo',
@@ -118,6 +119,7 @@ describe('mcp-client plugin module exports', () => {
 
   it('Config schema rejects a missing serverName', () => {
     expect(() => ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       command: 'echo',
     } as never)).toThrow()
@@ -127,11 +129,13 @@ describe('mcp-client plugin module exports', () => {
     // schemastery unions wrap branch errors in a generic "expected ... but got"
     // message, so assert the throw, not the inner pattern text.
     expect(() => ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'bad name!',
       command: 'echo',
     } as never)).toThrow()
     expect(() => ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'x'.repeat(33),
       command: 'echo',
@@ -140,6 +144,7 @@ describe('mcp-client plugin module exports', () => {
 
   it('Config schema accepts a valid serverName', () => {
     const resolved = ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'github-prod_1',
       command: 'echo',
@@ -149,6 +154,7 @@ describe('mcp-client plugin module exports', () => {
 
   it('Config schema materializes reconnect defaults and merges partial overrides', () => {
     const omitted = ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'srv',
       command: 'echo',
@@ -159,6 +165,7 @@ describe('mcp-client plugin module exports', () => {
     expect(omitted.reconnect).toEqual({ enabled: true, initialDelayMs: 500, maxDelayMs: 30_000, maxAttempts: 10 })
 
     const partial = ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'srv',
       command: 'echo',
@@ -170,6 +177,7 @@ describe('mcp-client plugin module exports', () => {
   it('Config schema rejects an invalid reconnect block', () => {
     // schemastery unions wrap branch errors, so assert the throw only.
     expect(() => ConfigSchema({
+      toolLoading: 'eager',
       transport: 'stdio',
       serverName: 'srv',
       command: 'echo',
@@ -465,6 +473,7 @@ describe('apply (plugin lifecycle)', () => {
 
   it('uses streamable-http config path', async () => {
     const httpConfig = ConfigSchema({
+      toolLoading: 'eager',
       transport: 'streamable-http',
       serverName: 'web',
       url: 'http://localhost:3000/mcp',

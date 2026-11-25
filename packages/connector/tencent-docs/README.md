@@ -37,7 +37,7 @@ The bundle patch inserts the `tencent-docs` row after the profile's other layers
 
 ### Authorize and sign out
 
-The plugin registers the server `tencent-docs` with the fixed OAuth credential key `mcp-client/tencent-docs`. Without a saved grant the server waits for authorization and exposes no Tencent Docs tools. With a saved grant the manager connects at startup and refreshes tokens as needed. Tencent Docs' tools load [on demand](../../mcp/mcp-client/README.md#on-demand-tool-loading) by default: the system prompt lists them, and each agent loads the ones it needs with `mcp__tencent-docs__load_tools`.
+The plugin registers the server `tencent-docs` with the fixed OAuth credential key `mcp-client/tencent-docs`. Without a saved grant the server waits for authorization and exposes no Tencent Docs tools. With a saved grant the manager connects at startup and refreshes tokens as needed. Tencent Docs's tools load [on demand](../../mcp/mcp-client/README.md#on-demand-tool-loading) by default: each agent searches and loads matching tools with `mcp__tencent-docs__search_tools`.
 
 While the plugin is on, its page on the **Plugins** page shows a **Tencent Docs account** section, and a tag beside the title reads Not connected, Connecting, Connected, Reconnect, or Unavailable. Switching the plugin on from the list while no account is connected offers **Connect Tencent Docs**, which opens the plugin's page and starts authorization.
 
@@ -122,7 +122,7 @@ The guidance is prefix-stable: it changes only when the plugin loads or unloads,
 
 #### What the model sees
 
-After authorization, the model sees Tencent Docs' server instructions under `### MCP server: tencent-docs` and, with the default `toolLoading: on-demand`, the loader `mcp__tencent-docs__load_tools` and a [catalog of Tencent Docs' tools](../../mcp/mcp-client/README.md#model-experience) in the system prompt; each tool it loads then appears as `mcp__tencent-docs__<tool>` with Tencent Docs' description and input schema. Many Tencent Docs tool names contain a dot, such as `doc.create_with_markdown`; the catalog lists them unchanged, and their loaded names replace the dot and add a hash suffix, such as `mcp__tencent-docs__doc_create_with_markdown_ff0986999909`, as the [MCP client](../../mcp/mcp-client/README.md#model-experience) documents. With `eager`, every tool appears from the start, as the [MCP client](../../mcp/mcp-client/README.md#model-experience) documents. With `on-demand`, the loader and the catalog appear only once Tencent Docs is connected. While the plugin is loaded, including before authorization, the [shared resource tools](../../mcp/mcp-resources/README.md#model-experience) and their server-name prompt list `tencent-docs`.
+After authorization, the model sees Tencent Docs's server instructions and `mcp__tencent-docs__search_tools`. Search returns callable names and summaries, then adds matching tool definitions only to that agent; `eager` exposes all definitions immediately. The [MCP client](../../mcp/mcp-client/README.md#model-experience) owns search, name normalization, token and cache behavior. While the plugin is loaded, including before authorization, the [shared resource tools](../../mcp/mcp-resources/README.md#model-experience) list `tencent-docs`.
 
 #### Token effect
 

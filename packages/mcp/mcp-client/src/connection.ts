@@ -140,7 +140,7 @@ export function startConnection(
   const lifetime = new AbortController()
   const readiness = Promise.withResolvers<ConnectionOutcome>()
   const loader = config.toolLoading === 'on-demand'
-    ? new McpToolLoader(ctx, config.serverName, config.catalogDescriptionMaxLength)
+    ? new McpToolLoader(ctx, config.serverName, config.catalogDescriptionMaxLength, config.searchResultLimit)
     : undefined
   type Generation = { wire: McpGeneration; connectedAt?: number }
   let current: Generation | undefined

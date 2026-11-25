@@ -13,7 +13,7 @@ const ref = credentialRef('MCP_TOKEN')
 const url = 'https://mcp.invalid/fixture'
 
 function httpConfig(): Config {
-  return Config({ transport: 'streamable-http', serverName: 'binding', url,
+  return Config({ toolLoading: 'eager', transport: 'streamable-http', serverName: 'binding', url,
     headers: { Authorization: 'Bearer ${credential:MCP_TOKEN}' }, expandTemplates: true })
 }
 
@@ -43,7 +43,7 @@ describe('McpTemplateBinding', () => {
   })
 
   it('resolves repeated references once per pass while keeping configuration unexpanded', async () => {
-    const config = Config({ transport: 'stdio', serverName: 'binding', expandTemplates: true,
+    const config = Config({ toolLoading: 'eager', transport: 'stdio', serverName: 'binding', expandTemplates: true,
       command: 'fixture-command', args: ['${credential:MCP_TOKEN}', '${credential:MCP_TOKEN}'],
       env: { TOKEN: '${credential:MCP_TOKEN}' }, cwd: '' })
     const binding = new McpTemplateBinding(ctx, config)

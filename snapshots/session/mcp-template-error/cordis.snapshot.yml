@@ -25,6 +25,7 @@
       inject: [credentials]
       config:
         transport: streamable-http
+        toolLoading: eager
         serverName: protected
         url: !!js process.env.DSH_MCP_DEMO_URL
         headers:

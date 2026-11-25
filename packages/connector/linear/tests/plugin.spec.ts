@@ -90,11 +90,11 @@ it('keeps Linear tools hidden from an agent until it loads them, unless loading 
   await onDemand.await()
   await b.authorize()
   expect(b.ctx.tools.get('mcp__linear__ping', agent)).toBeUndefined()
-  expect(b.ctx.tools.get('mcp__linear__load_tools', agent)).toBeDefined()
+  expect(b.ctx.tools.get('mcp__linear__search_tools', agent)).toBeDefined()
   expect(await executeToolFixture(b.ctx, {
-    callId: ToolCallId('linear-load'), name: 'mcp__linear__load_tools', arguments: { tools: ['ping'] },
+    callId: ToolCallId('linear-load'), name: 'mcp__linear__search_tools', arguments: { query: 'ping' },
     signal: new AbortController().signal, agent,
-  })).toMatchObject({ isError: false, value: 'Loaded: mcp__linear__ping.' })
+  })).toMatchObject({ isError: false, value: 'Available for your next call:\n- mcp__linear__ping: Replies pong.' })
   expect(b.ctx.tools.get('mcp__linear__ping', agent)).toBeDefined()
 
   await onDemand.dispose()
